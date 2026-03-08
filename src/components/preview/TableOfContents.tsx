@@ -2,10 +2,12 @@
 
 import { useMemo } from "react";
 import { List } from "lucide-react";
+import { slugifyHeading } from "@/lib/links/parser";
 
 interface TocItem {
   level: number;
   text: string;
+  id: string;
 }
 
 interface TableOfContentsProps {
@@ -30,7 +32,8 @@ function extractHeadings(markdown: string): TocItem[] {
     if (match) {
       const level = match[1].length;
       const text = match[2].replace(/[*_`~\[\]]/g, "").trim();
-      headings.push({ level, text });
+      const id = slugifyHeading(text);
+      headings.push({ level, text, id });
     }
   }
 
@@ -50,6 +53,13 @@ export function TableOfContents({
   const minLevel = Math.min(...headings.map((h) => h.level));
 
   const scrollToHeading = (heading: TocItem) => {
+    const el = document.getElementById(heading.id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    // Fallback: match by text content
     const container = document.getElementById("markdown-preview-content");
     if (!container) return;
 
@@ -57,9 +67,9 @@ export function TableOfContents({
       "h1, h2, h3, h4, h5, h6"
     );
 
-    for (const el of headingElements) {
-      if (el.textContent?.trim() === heading.text) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
+    for (const headingEl of headingElements) {
+      if (headingEl.textContent?.trim() === heading.text) {
+        headingEl.scrollIntoView({ behavior: "smooth", block: "start" });
         return;
       }
     }
@@ -75,7 +85,7 @@ export function TableOfContents({
         <nav className="max-h-48 overflow-y-auto space-y-0.5">
           {headings.map((heading, i) => (
             <button
-              key={`${heading.text}-${i}`}
+              key={`${heading.id}-${i}`}
               onClick={() => scrollToHeading(heading)}
               className="block w-full text-left text-xs hover:text-primary transition-colors truncate"
               style={{
