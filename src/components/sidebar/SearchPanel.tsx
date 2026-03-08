@@ -126,16 +126,21 @@ export function SearchPanel() {
                   {tags
                     .filter((t) => t.tag !== searchFilters.tag)
                     .slice(0, 15)
-                    .map((t) => (
-                      <Badge
-                        key={t.tag}
-                        variant="outline"
-                        className="cursor-pointer text-xs"
-                        onClick={() => setSearchFilters({ tag: t.tag })}
-                      >
-                        {t.tag}
-                      </Badge>
-                    ))}
+                    .map((t) => {
+                      const segments = t.tag.split("/");
+                      const displayName = segments[segments.length - 1];
+                      return (
+                        <Badge
+                          key={t.tag}
+                          variant="outline"
+                          className="cursor-pointer text-xs"
+                          onClick={() => setSearchFilters({ tag: t.tag })}
+                          title={t.tag}
+                        >
+                          {displayName}
+                        </Badge>
+                      );
+                    })}
                 </div>
               </div>
             )}
