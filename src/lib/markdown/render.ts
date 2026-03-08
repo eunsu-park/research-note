@@ -5,6 +5,7 @@ import remarkMath from "remark-math";
 import remarkRehype from "remark-rehype";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
+import rehypeSlug from "rehype-slug";
 import rehypeStringify from "rehype-stringify";
 import { renderWikiLinks } from "@/lib/links/parser";
 
@@ -19,6 +20,7 @@ export async function renderMarkdown(content: string): Promise<string> {
     .use(remarkMath)
     .use(remarkRehype, { allowDangerousHtml: true })
     .use(rehypeRaw)
+    .use(rehypeSlug)
     .use(rehypeKatex)
     .use(rehypeStringify)
     .process(processed);
