@@ -62,6 +62,27 @@ export default function NotePage({
     fetchNote(slug);
   }, [slug, fetchNote]);
 
+  // Scroll to heading anchor when URL contains a hash fragment
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) return;
+
+    const scrollToAnchor = () => {
+      const el = document.getElementById(hash.slice(1));
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        return true;
+      }
+      return false;
+    };
+
+    // Try immediately, then retry after preview renders
+    if (!scrollToAnchor()) {
+      const timer = setTimeout(scrollToAnchor, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [slug]);
+
   useEffect(() => {
     if (currentNote?.content !== undefined) {
       setContent(currentNote.content);
