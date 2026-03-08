@@ -17,8 +17,12 @@ function buildFilterClause(
   const params: unknown[] = [];
 
   if (filters.tag) {
-    conditions.push(`${tableAlias}.tags LIKE ?`);
+    // Hierarchical tag matching: exact tag OR child tags (tag/)
+    conditions.push(
+      `(${tableAlias}.tags LIKE ? OR ${tableAlias}.tags LIKE ?)`
+    );
     params.push(`%"${filters.tag}"%`);
+    params.push(`%"${filters.tag}/%`);
   }
   if (filters.noteType) {
     conditions.push(`${tableAlias}.note_type = ?`);
@@ -181,18 +185,17 @@ function fallbackSearch(
   }));
 }
 
-/** Search notes by tag */
+/** Search notes by tag (supports hierarchical matching) */
 export function searchByTag(tag: string): SearchResult[] {
   const db = getDb();
   const stmt = db.prepare(`
     SELECT slug, title, tags, substr(content, 1, 200) as snippet
     FROM notes
-    WHERE tags LIKE ?
+    WHERE tags LIKE ? OR tags LIKE ?
     ORDER BY updated DESC
   `);
 
-  const pattern = `%"${tag}"%`;
-  const rows = stmt.all(pattern) as Array<{
+  const rows = stmt.all(`%"${tag}"%`, `%"${tag}/%`) as Array<{
     slug: string;
     title: string;
     tags: string;
