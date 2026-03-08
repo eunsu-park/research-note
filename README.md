@@ -28,8 +28,8 @@ Notes are stored as plain `.md` files on the local filesystem and indexed via SQ
 
 | Feature | Description |
 |---------|-------------|
-| Tags | YAML frontmatter-based tags with sidebar filtering |
-| Bi-directional links | `[[wiki-link]]` syntax with automatic backlink tracking |
+| Tags | Hierarchical tags (`topic/subtopic`) with tree view and inclusive filtering |
+| Bi-directional links | `[[wiki-link]]` and `[[note#heading]]` section-level links with backlink tracking |
 | Templates | Predefined templates: blank, research, meeting, literature review |
 | Daily notes | One-click daily journal entry with date-based slug |
 | Calendar view | Browse and navigate notes by creation date |
@@ -81,7 +81,7 @@ Notes are stored as plain `.md` files on the local filesystem and indexed via SQ
 | Framework | [Next.js 16](https://nextjs.org/) (App Router) + TypeScript |
 | UI | [shadcn/ui](https://ui.shadcn.com/) + [Tailwind CSS 4](https://tailwindcss.com/) |
 | Editor | [CodeMirror 6](https://codemirror.net/) |
-| Markdown | [unified](https://unifiedjs.com/) / remark / rehype |
+| Markdown | [unified](https://unifiedjs.com/) / remark / rehype / rehype-slug |
 | Storage | Local filesystem (`.md`) + [SQLite](https://www.sqlite.org/) ([better-sqlite3](https://github.com/WiseLibs/better-sqlite3)) |
 | Search | SQLite FTS5 |
 | Graph | [D3.js](https://d3js.org/) |
@@ -145,8 +145,8 @@ Notes are standard markdown files with YAML frontmatter:
 ---
 title: My Research Note
 tags:
-  - physics
-  - quantum
+  - physics/quantum
+  - math
 type: research
 created: 2026-03-08T10:00:00.000Z
 updated: 2026-03-08T10:00:00.000Z
@@ -166,7 +166,7 @@ $$
 
 ### Wiki Links
 
-Use `[[note-slug]]` to create bi-directional links between notes. The knowledge graph visualizes these connections as an interactive force-directed graph.
+Use `[[note-slug]]` to create bi-directional links between notes. Link to a specific section with `[[note-slug#heading]]`, or use display text with `[[note-slug#heading|display text]]`. The knowledge graph visualizes note connections as an interactive force-directed graph.
 
 ## Configuration
 
@@ -238,7 +238,8 @@ research-note/
 │   │   ├── markdown/               # Parsing & rendering pipeline
 │   │   ├── search/                 # FTS5 indexing & filtered queries
 │   │   ├── filesystem/             # File I/O, trash system
-│   │   ├── links/                  # Wiki-link parser, backlink resolution
+│   │   ├── links/                  # Wiki-link parser (section-level), backlink resolution
+│   │   ├── tags/                   # Tag hierarchy (tree builder, matcher)
 │   │   ├── editor/                 # Formatting helpers (wrapSelection, toggleLinePrefix)
 │   │   ├── git/                    # Git history integration
 │   │   └── templates/              # Template management
