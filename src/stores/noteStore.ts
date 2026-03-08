@@ -10,6 +10,7 @@ import type {
   SortBy,
   SortOrder,
 } from "@/types/note.types";
+import type { TagTreeNode } from "@/lib/tags/hierarchy";
 
 interface NoteStore {
   // Notes list
@@ -38,6 +39,7 @@ interface NoteStore {
 
   // Tags
   tags: Array<{ tag: string; count: number }>;
+  tagTree: TagTreeNode[];
   selectedTag: string | null;
 
   // Graph
@@ -124,6 +126,7 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
   searchLoading: false,
   searchFilters: { tag: "", noteType: "", dateFrom: "", dateTo: "" },
   tags: [],
+  tagTree: [],
   selectedTag: null,
   graphData: null,
   templates: [],
@@ -249,7 +252,10 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
   fetchTags: async () => {
     const res = await fetch("/api/tags");
     const { data } = await res.json();
-    set({ tags: data || [] });
+    set({
+      tags: data?.tags || [],
+      tagTree: data?.tree || [],
+    });
   },
 
   filterByTag: async (tag: string | null) => {
