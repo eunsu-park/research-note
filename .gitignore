@@ -47,6 +47,8 @@ next-env.d.ts
 
 # User data (created at runtime)
 /notes/
+!/notes/writing-guide.md
+!/notes/features-guide.md
 /.trash/
 /attachments/
 
