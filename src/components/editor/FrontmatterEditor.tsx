@@ -59,7 +59,11 @@ export function FrontmatterEditor({
   );
 
   const handleAddTag = useCallback(async () => {
-    const tag = newTag.trim().toLowerCase();
+    const tag = newTag
+      .trim()
+      .toLowerCase()
+      .replace(/\/+/g, "/")
+      .replace(/^\/|\/$/g, "");
     if (!tag || frontmatter.tags.includes(tag)) {
       setNewTag("");
       return;
@@ -113,21 +117,31 @@ export function FrontmatterEditor({
 
           {/* Inline tag chips */}
           <div className="flex items-center gap-1 flex-wrap">
-            {frontmatter.tags.map((tag) => (
-              <Badge
-                key={tag}
-                variant="secondary"
-                className="text-xs gap-1 group/tag"
-              >
-                {tag}
-                <button
-                  onClick={() => handleRemoveTag(tag)}
-                  className="opacity-0 group-hover/tag:opacity-100 transition-opacity"
+            {frontmatter.tags.map((tag) => {
+              const segments = tag.split("/");
+              const isHierarchical = segments.length > 1;
+              return (
+                <Badge
+                  key={tag}
+                  variant="secondary"
+                  className="text-xs gap-1 group/tag"
+                  title={tag}
                 >
-                  <X className="h-2.5 w-2.5" />
-                </button>
-              </Badge>
-            ))}
+                  {isHierarchical && (
+                    <span className="text-muted-foreground">
+                      {segments.slice(0, -1).join("/")}/
+                    </span>
+                  )}
+                  {segments[segments.length - 1]}
+                  <button
+                    onClick={() => handleRemoveTag(tag)}
+                    className="opacity-0 group-hover/tag:opacity-100 transition-opacity"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </Badge>
+              );
+            })}
           </div>
 
           <CollapsibleTrigger asChild>
@@ -172,8 +186,8 @@ export function FrontmatterEditor({
                 <Input
                   value={newTag}
                   onChange={(e) => setNewTag(e.target.value)}
-                  placeholder="Add tag..."
-                  className="h-6 w-24 text-xs"
+                  placeholder="Add tag (e.g. topic/sub)..."
+                  className="h-6 w-36 text-xs"
                 />
                 <Button
                   type="submit"
