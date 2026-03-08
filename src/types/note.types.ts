@@ -36,10 +36,11 @@ export interface NoteSummary {
 export type SortBy = "updated" | "created" | "title";
 export type SortOrder = "asc" | "desc";
 
-/** A link between two notes */
+/** A link between two notes, optionally targeting a specific section */
 export interface NoteLink {
   source: string;
   target: string;
+  section?: string;
 }
 
 /** Node in the knowledge graph */
