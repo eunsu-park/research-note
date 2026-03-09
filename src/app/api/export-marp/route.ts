@@ -64,6 +64,7 @@ export async function GET(request: Request) {
           "-o",
           outputPath,
           "--allow-local-files",
+          "--no-stdin",
         ], { timeout: 60000 });
 
         const fileBuffer = fs.readFileSync(outputPath);
