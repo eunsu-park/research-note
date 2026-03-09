@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  yargs@17.7.2:
+    hash: 9113f48b0abd9c0a1c8e9b5f1f539a94b214399843dbdc4d52124c6f73a2cd6e
+    path: patches/yargs@17.7.2.patch
+
 importers:
 
   .:
@@ -6288,7 +6293,7 @@ snapshots:
       serve-index: 1.9.2
       tmp: 0.2.5
       ws: 8.19.0
-      yargs: 17.7.2
+      yargs: 17.7.2(patch_hash=9113f48b0abd9c0a1c8e9b5f1f539a94b214399843dbdc4d52124c6f73a2cd6e)
     transitivePeerDependencies:
       - bare-abort-controller
       - bare-buffer
@@ -6439,7 +6444,7 @@ snapshots:
       proxy-agent: 6.5.0
       semver: 7.7.4
       tar-fs: 3.1.2
-      yargs: 17.7.2
+      yargs: 17.7.2(patch_hash=9113f48b0abd9c0a1c8e9b5f1f539a94b214399843dbdc4d52124c6f73a2cd6e)
     transitivePeerDependencies:
       - bare-abort-controller
       - bare-buffer
@@ -10259,7 +10264,7 @@ snapshots:
       tough-cookie: 6.0.0
       type-fest: 5.4.4
       until-async: 3.0.2
-      yargs: 17.7.2
+      yargs: 17.7.2(patch_hash=9113f48b0abd9c0a1c8e9b5f1f539a94b214399843dbdc4d52124c6f73a2cd6e)
     optionalDependencies:
       typescript: 5.9.3
     transitivePeerDependencies:
@@ -11880,7 +11885,7 @@ snapshots:
 
   yargs-parser@21.1.1: {}
 
-  yargs@17.7.2:
+  yargs@17.7.2(patch_hash=9113f48b0abd9c0a1c8e9b5f1f539a94b214399843dbdc4d52124c6f73a2cd6e):
     dependencies:
       cliui: 8.0.1
       escalade: 3.2.0
