@@ -56,7 +56,10 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "better-sqlite3"
-    ]
+    ],
+    "patchedDependencies": {
+      "yargs@17.7.2": "patches/yargs@17.7.2.patch"
+    }
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
