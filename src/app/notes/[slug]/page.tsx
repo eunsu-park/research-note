@@ -112,6 +112,24 @@ export default function NotePage({
     [debouncedSave]
   );
 
+  const handleExportMarp = async (format: string) => {
+    try {
+      const res = await fetch(`/api/export-marp?slug=${slug}&format=${format}`);
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${slug}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error(`Failed to export as ${format.toUpperCase()}`);
+    }
+  };
+
   const handleDelete = async () => {
     if (
       !confirm("Are you sure you want to delete this note?")
@@ -211,20 +229,12 @@ export default function NotePage({
                         Export as HTML
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() =>
-                          window.open(
-                            `/api/export-marp?slug=${slug}&format=pdf`
-                          )
-                        }
+                        onClick={() => handleExportMarp("pdf")}
                       >
                         Export as PDF
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() =>
-                          window.open(
-                            `/api/export-marp?slug=${slug}&format=pptx`
-                          )
-                        }
+                        onClick={() => handleExportMarp("pptx")}
                       >
                         Export as PPTX
                       </DropdownMenuItem>
