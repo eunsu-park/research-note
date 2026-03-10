@@ -14,6 +14,7 @@ export interface AppSettings {
 
   // UI
   defaultSidebarTab: "files" | "tags" | "search";
+  editorViewMode: "split" | "editor" | "preview";
 }
 
 interface SettingsStore extends AppSettings {
@@ -30,6 +31,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   lineWrapping: true,
   autoSaveDelay: 1000,
   defaultSidebarTab: "files",
+  editorViewMode: "split",
 };
 
 export const useSettingsStore = create<SettingsStore>()(
