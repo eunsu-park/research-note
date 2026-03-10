@@ -32,6 +32,9 @@ import {
   CheckCircle,
   Download,
   Play,
+  PanelLeft,
+  Columns2,
+  Eye,
 } from "lucide-react";
 import { StickyBoard } from "@/components/stickies/StickyBoard";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -51,7 +54,7 @@ export default function NotePage({
     updateNote,
     deleteNote,
   } = useNoteStore();
-  const { autoSaveDelay } = useSettingsStore();
+  const { autoSaveDelay, editorViewMode, updateSetting } = useSettingsStore();
   const [content, setContent] = useState("");
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "idle">(
     "idle"
@@ -196,6 +199,39 @@ export default function NotePage({
               </Button>
             )}
 
+            {/* View mode toggle */}
+            {!isSticky && (
+              <div className="flex items-center rounded-md border">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-6 w-6 rounded-r-none ${editorViewMode === "editor" ? "bg-muted" : ""}`}
+                  onClick={() => updateSetting("editorViewMode", "editor")}
+                  title="Editor only"
+                >
+                  <PanelLeft className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-6 w-6 rounded-none border-x ${editorViewMode === "split" ? "bg-muted" : ""}`}
+                  onClick={() => updateSetting("editorViewMode", "split")}
+                  title="Split view"
+                >
+                  <Columns2 className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-6 w-6 rounded-l-none ${editorViewMode === "preview" ? "bg-muted" : ""}`}
+                  onClick={() => updateSetting("editorViewMode", "preview")}
+                  title="Preview only"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
+
             {/* Export dropdown */}
             {!isSticky && (
               <DropdownMenu>
@@ -271,36 +307,17 @@ export default function NotePage({
           <div className="flex-1 overflow-hidden">
             <StickyBoard groupSlug={slug} />
           </div>
-        ) : isPresentation ? (
-          <div className="flex-1 overflow-hidden">
-            <ResizablePanelGroup orientation="horizontal">
-              <ResizablePanel defaultSize={50} minSize={30}>
-                <MarkdownEditor
-                  content={content}
-                  onChange={handleContentChange}
-                />
-              </ResizablePanel>
-
-              <ResizableHandle withHandle />
-
-              <ResizablePanel defaultSize={50} minSize={20}>
-                <MarpPreview content={content} />
-              </ResizablePanel>
-            </ResizablePanelGroup>
-          </div>
         ) : (
           <div className="flex-1 overflow-hidden">
-            <ResizablePanelGroup orientation="horizontal">
-              <ResizablePanel defaultSize={50} minSize={30}>
-                <MarkdownEditor
-                  content={content}
-                  onChange={handleContentChange}
-                />
-              </ResizablePanel>
-
-              <ResizableHandle withHandle />
-
-              <ResizablePanel defaultSize={50} minSize={20}>
+            {editorViewMode === "editor" ? (
+              <MarkdownEditor
+                content={content}
+                onChange={handleContentChange}
+              />
+            ) : editorViewMode === "preview" ? (
+              isPresentation ? (
+                <MarpPreview content={content} />
+              ) : (
                 <div className="h-full flex flex-col overflow-hidden">
                   <TableOfContents content={content} />
                   <MarkdownPreview
@@ -334,8 +351,59 @@ export default function NotePage({
                     </>
                   )}
                 </div>
-              </ResizablePanel>
-            </ResizablePanelGroup>
+              )
+            ) : (
+              <ResizablePanelGroup orientation="horizontal">
+                <ResizablePanel defaultSize={50} minSize={30}>
+                  <MarkdownEditor
+                    content={content}
+                    onChange={handleContentChange}
+                  />
+                </ResizablePanel>
+
+                <ResizableHandle withHandle />
+
+                <ResizablePanel defaultSize={50} minSize={20}>
+                  {isPresentation ? (
+                    <MarpPreview content={content} />
+                  ) : (
+                    <div className="h-full flex flex-col overflow-hidden">
+                      <TableOfContents content={content} />
+                      <MarkdownPreview
+                        content={content}
+                        className="flex-1"
+                      />
+
+                      {/* Backlinks section */}
+                      {backlinks.length > 0 && (
+                        <>
+                          <Separator />
+                          <div className="p-3 shrink-0">
+                            <h3 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                              <Link className="h-3 w-3" />
+                              Backlinks ({backlinks.length})
+                            </h3>
+                            <div className="space-y-1">
+                              {backlinks.map((bl) => (
+                                <button
+                                  key={bl.slug}
+                                  onClick={() =>
+                                    router.push(`/notes/${bl.slug}`)
+                                  }
+                                  className="block text-sm text-primary hover:underline"
+                                >
+                                  {bl.title}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            )}
           </div>
         )}
       </div>
