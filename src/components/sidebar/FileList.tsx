@@ -28,6 +28,7 @@ import {
   StickyNote,
   Presentation,
   Trash2,
+  Pencil,
 } from "lucide-react";
 import type { NoteSummary, SortBy } from "@/types/note.types";
 
@@ -52,7 +53,10 @@ export function FileList({ currentSlug }: FileListProps) {
     setSortOrder,
     togglePin,
     moveToFolder,
+    renameNote,
   } = useNoteStore();
+  const [renamingSlug, setRenamingSlug] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
     new Set([""])
   );
@@ -166,51 +170,111 @@ export function FileList({ currentSlug }: FileListProps) {
     []
   );
 
+  const startRename = useCallback(
+    (slug: string, title: string) => {
+      setRenamingSlug(slug);
+      setRenameValue(title);
+    },
+    []
+  );
+
+  const handleRename = useCallback(
+    async (slug: string) => {
+      const trimmed = renameValue.trim();
+      if (!trimmed) {
+        setRenamingSlug(null);
+        return;
+      }
+      const newSlug = await renameNote(slug, trimmed);
+      setRenamingSlug(null);
+      if (newSlug && newSlug !== slug && currentSlug === slug) {
+        router.push(`/notes/${newSlug}`);
+      }
+    },
+    [renameValue, renameNote, currentSlug, router]
+  );
+
   const renderNote = useCallback(
-    (note: NoteSummary) => (
-      <div
-        key={note.slug}
-        draggable
-        onDragStart={(e) => handleDragStart(e, note.slug)}
-        className={`group relative w-full text-left px-3 py-2 rounded-md text-sm flex items-start gap-2 hover:bg-accent transition-colors cursor-pointer ${
-          currentSlug === note.slug
-            ? "bg-accent text-accent-foreground"
-            : ""
-        }`}
-        onClick={() => router.push(`/notes/${note.slug}`)}
-      >
-        {note.pinned ? (
-          <Pin className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
-        ) : note.noteType === "sticky" ? (
-          <StickyNote className="h-4 w-4 mt-0.5 shrink-0 text-yellow-500" />
-        ) : note.noteType === "presentation" ? (
-          <Presentation className="h-4 w-4 mt-0.5 shrink-0 text-blue-500" />
-        ) : (
-          <FileText className="h-4 w-4 mt-0.5 shrink-0" />
-        )}
-        <div className="min-w-0 flex-1">
-          <div className="font-medium truncate">{note.title}</div>
-          <div className="text-xs text-muted-foreground truncate">
-            {note.excerpt}
+    (note: NoteSummary) => {
+      if (renamingSlug === note.slug) {
+        return (
+          <div key={note.slug} className="px-3 py-1.5">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleRename(note.slug);
+              }}
+            >
+              <Input
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                className="h-7 text-sm"
+                autoFocus
+                onBlur={() => handleRename(note.slug)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") setRenamingSlug(null);
+                }}
+              />
+            </form>
           </div>
-        </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            togglePin(note.slug);
-          }}
-          className={`shrink-0 mt-0.5 p-0.5 rounded hover:bg-accent-foreground/10 ${
-            note.pinned
-              ? "text-primary"
-              : "text-muted-foreground opacity-0 group-hover:opacity-100"
-          } transition-opacity`}
-          title={note.pinned ? "Unpin" : "Pin"}
+        );
+      }
+
+      return (
+        <div
+          key={note.slug}
+          draggable
+          onDragStart={(e) => handleDragStart(e, note.slug)}
+          className={`group relative w-full text-left px-3 py-2 rounded-md text-sm flex items-start gap-2 hover:bg-accent transition-colors cursor-pointer ${
+            currentSlug === note.slug
+              ? "bg-accent text-accent-foreground"
+              : ""
+          }`}
+          onClick={() => router.push(`/notes/${note.slug}`)}
         >
-          <Pin className="h-3 w-3" />
-        </button>
-      </div>
-    ),
-    [currentSlug, handleDragStart, router, togglePin]
+          {note.pinned ? (
+            <Pin className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+          ) : note.noteType === "sticky" ? (
+            <StickyNote className="h-4 w-4 mt-0.5 shrink-0 text-yellow-500" />
+          ) : note.noteType === "presentation" ? (
+            <Presentation className="h-4 w-4 mt-0.5 shrink-0 text-blue-500" />
+          ) : (
+            <FileText className="h-4 w-4 mt-0.5 shrink-0" />
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="font-medium truncate">{note.title}</div>
+            <div className="text-xs text-muted-foreground truncate">
+              {note.excerpt}
+            </div>
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              startRename(note.slug, note.title);
+            }}
+            className="shrink-0 mt-0.5 p-0.5 rounded hover:bg-accent-foreground/10 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Rename"
+          >
+            <Pencil className="h-3 w-3" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePin(note.slug);
+            }}
+            className={`shrink-0 mt-0.5 p-0.5 rounded hover:bg-accent-foreground/10 ${
+              note.pinned
+                ? "text-primary"
+                : "text-muted-foreground opacity-0 group-hover:opacity-100"
+            } transition-opacity`}
+            title={note.pinned ? "Unpin" : "Pin"}
+          >
+            <Pin className="h-3 w-3" />
+          </button>
+        </div>
+      );
+    },
+    [currentSlug, handleDragStart, router, togglePin, renamingSlug, renameValue, handleRename, startRename]
   );
 
   if (loading) {

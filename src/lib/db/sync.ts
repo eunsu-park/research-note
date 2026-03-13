@@ -138,6 +138,31 @@ export function syncNoteBySlug(slug: string): void {
   }
 }
 
+/** Rename a note's slug in the database (notes + links tables, FTS updated via triggers) */
+export function renameNoteInDb(oldSlug: string, newSlug: string): void {
+  const db = getDb();
+
+  const transaction = db.transaction(() => {
+    // Update links table first
+    db.prepare("UPDATE links SET source = ? WHERE source = ?").run(
+      newSlug,
+      oldSlug
+    );
+    db.prepare("UPDATE links SET target = ? WHERE target = ?").run(
+      newSlug,
+      oldSlug
+    );
+
+    // Update notes table (AFTER UPDATE trigger handles FTS automatically)
+    db.prepare("UPDATE notes SET slug = ? WHERE slug = ?").run(
+      newSlug,
+      oldSlug
+    );
+  });
+
+  transaction();
+}
+
 /** Remove a note from the database */
 export function removeNoteFromDb(slug: string): void {
   const db = getDb();

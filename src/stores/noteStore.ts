@@ -68,6 +68,7 @@ interface NoteStore {
     frontmatter: Record<string, unknown>
   ) => Promise<void>;
   deleteNote: (slug: string) => Promise<void>;
+  renameNote: (slug: string, newTitle: string) => Promise<string | null>;
   togglePin: (slug: string) => Promise<void>;
   moveToFolder: (slug: string, folder: string) => Promise<void>;
   search: (query: string) => Promise<void>;
@@ -194,6 +195,18 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
     await fetch(`/api/notes/${slug}`, { method: "DELETE" });
     set({ currentNote: null });
     await get().fetchNotes();
+  },
+
+  renameNote: async (slug: string, newTitle: string) => {
+    const res = await fetch(`/api/notes/${slug}/rename`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newTitle }),
+    });
+    const { data, error } = await res.json();
+    if (error || !data?.changed) return data?.slug || null;
+    await get().fetchNotes();
+    return data.slug;
   },
 
   togglePin: async (slug: string) => {
