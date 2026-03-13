@@ -77,7 +77,7 @@ export function MarkdownPreview({
         id="markdown-preview-content"
         ref={containerRef}
         className="prose prose-sm dark:prose-invert max-w-none p-6"
-        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html, { ADD_TAGS: ["iframe"], ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "srcdoc", "sandbox"] }) }}
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html, { ADD_TAGS: ["iframe", "ins", "del", "mark"], ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "srcdoc", "sandbox"] }) }}
       />
     </div>
   );

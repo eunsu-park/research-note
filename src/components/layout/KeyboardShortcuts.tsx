@@ -38,13 +38,29 @@ const SECTIONS: Array<{ title: string; shortcuts: Shortcut[] }> = [
       { keys: `${MOD}+I`, description: "Italic" },
       { keys: `${MOD}+${SHIFT}+S`, description: "Strikethrough" },
       { keys: `${MOD}+${SHIFT}+K`, description: "Inline code" },
+      { keys: `${MOD}+${SHIFT}+H`, description: "Highlight" },
     ],
   },
   {
     title: "Editor - Block Formatting",
     shortcuts: [
       { keys: `${MOD}+${SHIFT}+C`, description: "Code block" },
+      { keys: `${MOD}+${SHIFT}+M`, description: "Math block" },
+      { keys: `${MOD}+${SHIFT}+Q`, description: "Blockquote" },
       { keys: `${MOD}+${SHIFT}+X`, description: "Task list" },
+      { keys: `${MOD}+${SHIFT}+8`, description: "Bullet list" },
+      { keys: `${MOD}+${SHIFT}+9`, description: "Numbered list" },
+      { keys: `${MOD}+${SHIFT}+D`, description: "Mermaid diagram" },
+      { keys: `${MOD}+${SHIFT}+R`, description: "Horizontal rule" },
+    ],
+  },
+  {
+    title: "Editor - Insert",
+    shortcuts: [
+      { keys: `${MOD}+${SHIFT}+L`, description: "Insert link" },
+      { keys: `${MOD}+${SHIFT}+I`, description: "Insert image" },
+      { keys: `${MOD}+${SHIFT}+W`, description: "Insert wiki-link" },
+      { keys: `${MOD}+${SHIFT}+T`, description: "Insert table" },
     ],
   },
   {

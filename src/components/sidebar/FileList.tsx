@@ -27,6 +27,7 @@ import {
   FolderPlus,
   StickyNote,
   Presentation,
+  Trash2,
 } from "lucide-react";
 import type { NoteSummary, SortBy } from "@/types/note.types";
 
@@ -55,6 +56,7 @@ export function FileList({ currentSlug }: FileListProps) {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
     new Set([""])
   );
+  const [customFolders, setCustomFolders] = useState<Set<string>>(new Set());
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
@@ -78,6 +80,13 @@ export function FileList({ currentSlug }: FileListProps) {
       folders.get(folder)!.push(note);
     }
 
+    // Include custom (empty) folders
+    for (const cf of customFolders) {
+      if (!folders.has(cf)) {
+        folders.set(cf, []);
+      }
+    }
+
     // Sort folder names (root first, then alphabetical)
     const sortedFolders: FolderNode[] = [];
     const rootNotes = folders.get("") || [];
@@ -90,7 +99,7 @@ export function FileList({ currentSlug }: FileListProps) {
     }
 
     return { rootNotes, folders: sortedFolders };
-  }, [notes]);
+  }, [notes, customFolders]);
 
   const toggleFolder = useCallback((folder: string) => {
     setExpandedFolders((prev) => {
@@ -140,11 +149,22 @@ export function FileList({ currentSlug }: FileListProps) {
   const handleCreateFolder = useCallback(() => {
     const name = newFolderName.trim();
     if (!name) return;
-    // Just expand it — it will appear when notes are moved into it
+    setCustomFolders((prev) => new Set(prev).add(name));
     setExpandedFolders((prev) => new Set(prev).add(name));
     setNewFolderName("");
     setShowNewFolder(false);
   }, [newFolderName]);
+
+  const handleDeleteFolder = useCallback(
+    (folderName: string) => {
+      setCustomFolders((prev) => {
+        const next = new Set(prev);
+        next.delete(folderName);
+        return next;
+      });
+    },
+    []
+  );
 
   const renderNote = useCallback(
     (note: NoteSummary) => (
@@ -343,6 +363,18 @@ export function FileList({ currentSlug }: FileListProps) {
                   <span className="ml-auto text-xs opacity-60">
                     {folder.notes.length}
                   </span>
+                  {folder.notes.length === 0 && customFolders.has(folder.name) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteFolder(folder.name);
+                      }}
+                      className="ml-1 p-0.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
+                      title="Delete empty folder"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
                 {isExpanded && (
                   <div className="ml-3 border-l pl-1">

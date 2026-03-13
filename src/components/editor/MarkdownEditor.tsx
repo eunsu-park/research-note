@@ -21,6 +21,11 @@ import {
   wrapSelection,
   toggleLinePrefix,
   insertCodeBlock,
+  insertBlock,
+  insertLink,
+  insertTable,
+  insertWikiLink,
+  insertHorizontalRule,
 } from "@/lib/editor/formatting";
 
 interface MarkdownEditorProps {
@@ -87,6 +92,50 @@ export function MarkdownEditor({
             {
               key: "Mod-Shift-c",
               run: (v) => { insertCodeBlock(v); return true; },
+            },
+            {
+              key: "Mod-Shift-h",
+              run: (v) => { wrapSelection(v, "<mark>", "</mark>"); return true; },
+            },
+            {
+              key: "Mod-Shift-m",
+              run: (v) => { insertBlock(v, "$$", "$$"); return true; },
+            },
+            {
+              key: "Mod-Shift-q",
+              run: (v) => { toggleLinePrefix(v, "> "); return true; },
+            },
+            {
+              key: "Mod-Shift-8",
+              run: (v) => { toggleLinePrefix(v, "- "); return true; },
+            },
+            {
+              key: "Mod-Shift-9",
+              run: (v) => { toggleLinePrefix(v, "1. "); return true; },
+            },
+            {
+              key: "Mod-Shift-d",
+              run: (v) => { insertBlock(v, "```mermaid", "```"); return true; },
+            },
+            {
+              key: "Mod-Shift-r",
+              run: (v) => { insertHorizontalRule(v); return true; },
+            },
+            {
+              key: "Mod-Shift-l",
+              run: (v) => { insertLink(v, false); return true; },
+            },
+            {
+              key: "Mod-Shift-i",
+              run: (v) => { insertLink(v, true); return true; },
+            },
+            {
+              key: "Mod-Shift-w",
+              run: (v) => { insertWikiLink(v); return true; },
+            },
+            {
+              key: "Mod-Shift-t",
+              run: (v) => { insertTable(v); return true; },
             },
           ]),
           EditorView.updateListener.of((update) => {

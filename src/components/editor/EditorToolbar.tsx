@@ -151,21 +151,25 @@ export function EditorToolbar({ editorView }: EditorToolbarProps) {
         <ToolbarButton
           icon={<List className="h-4 w-4" />}
           label="Bullet List"
+          shortcut="Ctrl+Shift+8"
           onClick={() => v && toggleLinePrefix(v, "- ")}
         />
         <ToolbarButton
           icon={<ListOrdered className="h-4 w-4" />}
           label="Ordered List"
+          shortcut="Ctrl+Shift+9"
           onClick={() => v && toggleLinePrefix(v, "1. ")}
         />
         <ToolbarButton
           icon={<ListChecks className="h-4 w-4" />}
           label="Task List"
+          shortcut="Ctrl+Shift+X"
           onClick={() => v && toggleLinePrefix(v, "- [ ] ")}
         />
         <ToolbarButton
           icon={<Quote className="h-4 w-4" />}
           label="Blockquote"
+          shortcut="Ctrl+Shift+Q"
           onClick={() => v && toggleLinePrefix(v, "> ")}
         />
 
@@ -175,21 +179,25 @@ export function EditorToolbar({ editorView }: EditorToolbarProps) {
         <ToolbarButton
           icon={<Link className="h-4 w-4" />}
           label="Link"
+          shortcut="Ctrl+Shift+L"
           onClick={() => v && insertLink(v, false)}
         />
         <ToolbarButton
           icon={<Image className="h-4 w-4" />}
           label="Image"
+          shortcut="Ctrl+Shift+I"
           onClick={() => v && insertLink(v, true)}
         />
         <ToolbarButton
           icon={<Table className="h-4 w-4" />}
           label="Table"
+          shortcut="Ctrl+Shift+T"
           onClick={() => v && insertTable(v)}
         />
         <ToolbarButton
           icon={<Minus className="h-4 w-4" />}
           label="Horizontal Rule"
+          shortcut="Ctrl+Shift+R"
           onClick={() => v && insertAtCursor(v, "\n---\n")}
         />
 
@@ -199,6 +207,7 @@ export function EditorToolbar({ editorView }: EditorToolbarProps) {
         <ToolbarButton
           icon={<Braces className="h-4 w-4" />}
           label="Code Block"
+          shortcut="Ctrl+Shift+C"
           onClick={() => v && insertCodeBlock(v)}
         />
         <ToolbarButton
@@ -211,6 +220,7 @@ export function EditorToolbar({ editorView }: EditorToolbarProps) {
             <span className="text-xs font-mono leading-none">$$</span>
           }
           label="Block Math"
+          shortcut="Ctrl+Shift+M"
           onClick={() => v && wrapSelection(v, "$$\n", "\n$$")}
         />
 

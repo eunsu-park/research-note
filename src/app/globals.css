@@ -125,3 +125,26 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Tracked changes & highlight styles */
+.prose ins {
+  text-decoration: underline;
+  text-decoration-color: oklch(0.55 0.18 145);
+  text-underline-offset: 2px;
+}
+
+.prose del {
+  text-decoration: line-through;
+  text-decoration-color: oklch(0.55 0.2 25);
+}
+
+.prose mark {
+  background-color: oklch(0.92 0.16 95);
+  padding: 0.1em 0.2em;
+  border-radius: 0.15em;
+}
+
+.dark .prose mark {
+  background-color: oklch(0.45 0.12 85);
+  color: oklch(0.95 0 0);
+}

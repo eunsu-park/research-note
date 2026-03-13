@@ -193,6 +193,69 @@ export function insertTable(view: EditorView): void {
 }
 
 /**
+ * Insert a block template at cursor (e.g., math block, mermaid diagram).
+ * Ensures the block starts on a new line.
+ */
+export function insertBlock(view: EditorView, before: string, after: string): void {
+  const { from, to } = view.state.selection.main;
+  const selected = view.state.sliceDoc(from, to);
+
+  const line = view.state.doc.lineAt(from);
+  const needNewline = line.text.length > 0 && from !== line.from;
+  const prefix = needNewline ? "\n" : "";
+
+  if (selected) {
+    const wrapped = `${prefix}${before}\n${selected}\n${after}`;
+    view.dispatch({
+      changes: { from, to, insert: wrapped },
+      selection: { anchor: from + prefix.length + before.length + 1, head: from + prefix.length + before.length + 1 + selected.length },
+    });
+  } else {
+    const block = `${prefix}${before}\n\n${after}`;
+    view.dispatch({
+      changes: { from, to, insert: block },
+      selection: { anchor: from + prefix.length + before.length + 1 },
+    });
+  }
+  view.focus();
+}
+
+/**
+ * Insert a wiki-link. Uses selected text as the target.
+ */
+export function insertWikiLink(view: EditorView): void {
+  const { from, to } = view.state.selection.main;
+  const selected = view.state.sliceDoc(from, to);
+
+  const target = selected || "note-slug";
+  const template = `[[${target}]]`;
+
+  view.dispatch({
+    changes: { from, to, insert: template },
+    selection: selected
+      ? { anchor: from, head: from + template.length }
+      : { anchor: from + 2, head: from + 2 + target.length },
+  });
+  view.focus();
+}
+
+/**
+ * Insert a horizontal rule at cursor.
+ */
+export function insertHorizontalRule(view: EditorView): void {
+  const { from, to } = view.state.selection.main;
+  const line = view.state.doc.lineAt(from);
+  const needNewline = line.text.length > 0 && from !== line.from;
+  const insert = needNewline ? "\n\n---\n" : "---\n";
+
+  view.dispatch({
+    changes: { from, to, insert },
+    selection: { anchor: from + insert.length },
+  });
+  view.focus();
+}
+
+/**
  * Insert a code block. If there's a selection, wrap it.
  */
 export function insertCodeBlock(view: EditorView): void {
