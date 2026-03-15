@@ -225,7 +225,7 @@ export function FileList({ currentSlug }: FileListProps) {
           key={note.slug}
           draggable
           onDragStart={(e) => handleDragStart(e, note.slug)}
-          className={`group relative w-full text-left px-3 py-2 rounded-md text-sm flex items-start gap-2 hover:bg-accent transition-colors cursor-pointer ${
+          className={`note-item relative w-full min-w-0 text-left px-3 py-2 rounded-md text-sm flex items-start gap-2 hover:bg-accent transition-colors cursor-pointer ${
             currentSlug === note.slug
               ? "bg-accent text-accent-foreground"
               : ""
@@ -252,7 +252,7 @@ export function FileList({ currentSlug }: FileListProps) {
               e.stopPropagation();
               startRename(note.slug, note.title);
             }}
-            className="shrink-0 mt-0.5 p-0.5 rounded hover:bg-accent-foreground/10 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+            className="note-action shrink-0 mt-0.5 p-0.5 rounded hover:bg-accent-foreground/10 text-muted-foreground"
             title="Rename"
           >
             <Pencil className="h-3 w-3" />
@@ -262,11 +262,11 @@ export function FileList({ currentSlug }: FileListProps) {
               e.stopPropagation();
               togglePin(note.slug);
             }}
-            className={`shrink-0 mt-0.5 p-0.5 rounded hover:bg-accent-foreground/10 ${
+            className={`note-action shrink-0 mt-0.5 p-0.5 rounded hover:bg-accent-foreground/10 ${
               note.pinned
-                ? "text-primary"
-                : "text-muted-foreground opacity-0 group-hover:opacity-100"
-            } transition-opacity`}
+                ? "text-primary always-visible"
+                : "text-muted-foreground"
+            }`}
             title={note.pinned ? "Unpin" : "Pin"}
           >
             <Pin className="h-3 w-3" />

@@ -126,6 +126,23 @@
   }
 }
 
+/* Fix ScrollArea content expanding beyond viewport in sidebar */
+[data-radix-scroll-area-viewport] > div {
+  display: block !important;
+}
+
+/* Sidebar note action buttons: show on hover */
+.note-item .note-action {
+  opacity: 0;
+  transition: opacity 150ms;
+}
+.note-item .note-action.always-visible {
+  opacity: 1;
+}
+.note-item:hover .note-action {
+  opacity: 1;
+}
+
 /* Tracked changes & highlight styles */
 .prose ins {
   text-decoration: underline;

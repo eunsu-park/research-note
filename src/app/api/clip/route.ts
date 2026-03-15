@@ -2,13 +2,12 @@ import { NextResponse } from "next/server";
 import {
   writeNote,
   slugify,
-  getNotePath,
+  getUniqueSlug,
   ensureNotesDir,
 } from "@/lib/filesystem/notes";
 import { syncNote } from "@/lib/db/sync";
 import { clipUrl } from "@/lib/clip/html-to-markdown";
 import type { NoteFrontmatter } from "@/types/note.types";
-import fs from "fs";
 
 /** POST /api/clip - Clip a web page and save as a note */
 export async function POST(request: Request) {
@@ -34,14 +33,8 @@ export async function POST(request: Request) {
     }
 
     const result = await clipUrl(url);
-    const slug = slugify(result.title);
-    const filePath = getNotePath(slug);
-
-    // If a note with this slug exists, append a timestamp
-    let finalSlug = slug;
-    if (fs.existsSync(filePath)) {
-      finalSlug = `${slug}-${Date.now()}`;
-    }
+    const baseSlug = slugify(result.title);
+    const finalSlug = getUniqueSlug(baseSlug);
 
     const now = new Date().toISOString();
     const frontmatter: NoteFrontmatter = {

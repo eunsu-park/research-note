@@ -28,6 +28,16 @@ export function getNotePath(slug: string): string {
   return path.join(NOTES_DIR, `${slug}.md`);
 }
 
+/** Get a unique slug by appending a numeric suffix if the slug already exists */
+export function getUniqueSlug(baseSlug: string): string {
+  if (!fs.existsSync(getNotePath(baseSlug))) return baseSlug;
+  let counter = 1;
+  while (fs.existsSync(getNotePath(`${baseSlug}-${counter}`))) {
+    counter++;
+  }
+  return `${baseSlug}-${counter}`;
+}
+
 /** Create default frontmatter for a new note */
 function defaultFrontmatter(title: string): NoteFrontmatter {
   const now = new Date().toISOString();

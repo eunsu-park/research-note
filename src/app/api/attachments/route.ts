@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (file.type && !ALLOWED_TYPES.has(file.type)) {
+    if (!file.type || !ALLOWED_TYPES.has(file.type)) {
       return NextResponse.json(
         { error: `File type '${file.type}' is not allowed` },
         { status: 400 }

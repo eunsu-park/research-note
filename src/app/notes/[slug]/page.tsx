@@ -19,6 +19,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
+import { useSaveQueue } from "@/hooks/useSaveQueue";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,18 +93,37 @@ export default function NotePage({
     }
   }, [currentNote?.content]);
 
-  const debouncedSave = useDebouncedCallback(
-    async (newContent: string) => {
-      try {
-        setSaveStatus("saving");
-        await updateNote(slug, newContent);
+  const { enqueue: enqueueSave } = useSaveQueue(
+    useCallback(
+      async (newContent: string) => {
+        const res = await fetch(`/api/notes/${slug}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: newContent }),
+        });
+        if (!res.ok) throw new Error(`Save failed: ${res.status}`);
+      },
+      [slug]
+    ),
+    {
+      onSaving: () => setSaveStatus("saving"),
+      onSaved: () => {
         setSaveStatus("saved");
         setTimeout(() => setSaveStatus("idle"), 2000);
-      } catch {
-        setSaveStatus("idle");
-        toast.error("Failed to save note");
-      }
-    },
+      },
+      onError: (retryCount) => {
+        if (retryCount <= 5) {
+          toast.error(`Save failed, retrying... (${retryCount}/5)`);
+        } else {
+          setSaveStatus("idle");
+          toast.error("Save failed after multiple retries. Your changes are queued and will retry on next edit.");
+        }
+      },
+    }
+  );
+
+  const debouncedSave = useDebouncedCallback(
+    (newContent: string) => enqueueSave(newContent),
     autoSaveDelay
   );
 

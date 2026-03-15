@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
 import {
-  readAllNotes,
   writeNote,
   slugify,
   ensureNotesDir,
-  generateExcerpt,
-  getNotePath,
+  getUniqueSlug,
 } from "@/lib/filesystem/notes";
 import { syncAllNotes, syncNote } from "@/lib/db/sync";
 import { getDb } from "@/lib/db/schema";
@@ -14,7 +12,6 @@ import {
   applyTemplateVariables,
 } from "@/lib/templates/index";
 import type { NoteSummary, NoteFrontmatter } from "@/types/note.types";
-import fs from "fs";
 
 /** GET /api/notes - List all notes */
 export async function GET() {
@@ -78,15 +75,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const slug = slugify(title);
-    const filePath = getNotePath(slug);
-
-    if (fs.existsSync(filePath)) {
-      return NextResponse.json(
-        { error: "A note with this title already exists" },
-        { status: 409 }
-      );
-    }
+    const baseSlug = slugify(title);
+    const slug = getUniqueSlug(baseSlug);
 
     // Get template content if specified
     let content = "";
