@@ -8,12 +8,14 @@ interface MarkdownPreviewProps {
   content: string;
   slug?: string;
   className?: string;
+  onWikiLinkClick?: (linkText: string) => void;
 }
 
 export function MarkdownPreview({
   content,
   slug,
   className = "",
+  onWikiLinkClick,
 }: MarkdownPreviewProps) {
   const [html, setHtml] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -35,6 +37,21 @@ export function MarkdownPreview({
   useEffect(() => {
     renderContent(content);
   }, [content, renderContent]);
+
+  // Handle wiki-link clicks
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !onWikiLinkClick) return;
+    const handler = (e: MouseEvent) => {
+      const target = (e.target as Element).closest("[data-wiki-link]");
+      if (!target) return;
+      e.preventDefault();
+      const raw = target.getAttribute("data-wiki-link");
+      if (raw) onWikiLinkClick(decodeURIComponent(raw));
+    };
+    container.addEventListener("click", handler);
+    return () => container.removeEventListener("click", handler);
+  }, [onWikiLinkClick]);
 
   // Initialize Mermaid diagrams after HTML is rendered
   useEffect(() => {
@@ -79,7 +96,7 @@ export function MarkdownPreview({
         id="markdown-preview-content"
         ref={containerRef}
         className="prose prose-sm dark:prose-invert max-w-none p-6"
-        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html, { ADD_TAGS: ["iframe", "ins", "del", "mark"], ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "srcdoc", "sandbox"] }) }}
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html, { ADD_TAGS: ["iframe", "ins", "del", "mark"], ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "srcdoc", "sandbox", "data-wiki-link"] }) }}
       />
     </div>
   );

@@ -8,7 +8,15 @@ import { useDebouncedCallback } from "@/hooks/useDebounce";
 import { MarkdownEditor } from "@/components/editor/MarkdownEditor";
 import { MarkdownPreview } from "@/components/preview/MarkdownPreview";
 import { TableOfContents } from "@/components/preview/TableOfContents";
+import { BacklinksPanel } from "@/components/preview/BacklinksPanel";
 import { FileTree } from "@/components/sidebar/FileTree";
+import { TagPanel } from "@/components/sidebar/TagPanel";
+import { HomeView } from "@/components/home/HomeView";
+import { SearchModal } from "@/components/search/SearchModal";
+import { ImportModal } from "@/components/notes/ImportModal";
+import { TrashPanel } from "@/components/trash/TrashPanel";
+import { CreateNoteModal } from "@/components/notes/CreateNoteModal";
+import { KeyboardShortcutsModal } from "@/components/shortcuts/KeyboardShortcutsModal";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -36,8 +44,15 @@ import {
   CheckCircle,
   FileText,
   ArrowUpDown,
+  Search,
+  CalendarDays,
+  Keyboard,
+  Download,
+  Tag,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { filterTreeByTag } from "@/lib/tagTree";
 import type { FileTreeNode } from "@/types/note.types";
 
 export default function Home() {
@@ -47,40 +62,76 @@ export default function Home() {
 
   const [tree, setTree] = useState<FileTreeNode[]>([]);
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+  const [showHome, setShowHome] = useState(true);
   const [content, setContent] = useState("");
   const [noteTitle, setNoteTitle] = useState("");
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "idle">("idle");
   const [mounted, setMounted] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [createModal, setCreateModal] = useState<{ open: boolean; folder?: string }>({
+    open: false,
+  });
+  const [importOpen, setImportOpen] = useState(false);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   useEffect(() => setMounted(true), []);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const active = document.activeElement;
+      const inInput =
+        active?.tagName === "INPUT" ||
+        active?.tagName === "TEXTAREA" ||
+        (active as HTMLElement)?.isContentEditable ||
+        active?.closest(".cm-editor");
+
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+        return;
+      }
+      if (e.key === "?" && !inInput) {
+        setShortcutsOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   // Sort tree files on client (folders stay alphabetically sorted from server)
   const sortedTree = useMemo(() => {
     function sortNodes(nodes: FileTreeNode[]): FileTreeNode[] {
-      return nodes.map((node) => {
-        if (node.type === "folder" && node.children) {
-          return { ...node, children: sortNodes(node.children) };
-        }
-        return node;
-      }).sort((a, b) => {
-        // Folders always first
-        if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
-        if (a.type === "folder") return a.name.localeCompare(b.name);
-
-        // Sort files
-        let cmp: number;
-        if (sortBy === "title") {
-          cmp = (a.title || a.name).localeCompare(b.title || b.name);
-        } else if (sortBy === "created") {
-          cmp = (a.created || "").localeCompare(b.created || "");
-        } else {
-          cmp = (a.updated || "").localeCompare(b.updated || "");
-        }
-        return sortOrder === "asc" ? cmp : -cmp;
-      });
+      return nodes
+        .map((node) => {
+          if (node.type === "folder" && node.children) {
+            return { ...node, children: sortNodes(node.children) };
+          }
+          return node;
+        })
+        .sort((a, b) => {
+          if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
+          if (a.type === "folder") return a.name.localeCompare(b.name);
+          let cmp: number;
+          if (sortBy === "title") {
+            cmp = (a.title || a.name).localeCompare(b.title || b.name);
+          } else if (sortBy === "created") {
+            cmp = (a.created || "").localeCompare(b.created || "");
+          } else {
+            cmp = (a.updated || "").localeCompare(b.updated || "");
+          }
+          return sortOrder === "asc" ? cmp : -cmp;
+        });
     }
     return sortNodes(tree);
   }, [tree, sortBy, sortOrder]);
+
+  const displayTree = useMemo(() => {
+    if (!selectedTag) return sortedTree;
+    return filterTreeByTag(sortedTree, selectedTag);
+  }, [sortedTree, selectedTag]);
 
   // Fetch file tree
   const fetchTree = useCallback(async () => {
@@ -100,7 +151,6 @@ export default function Home() {
   // Load note content when selected
   useEffect(() => {
     if (!selectedSlug) return;
-
     (async () => {
       try {
         const res = await fetch(`/api/notes/${selectedSlug}`);
@@ -139,41 +189,132 @@ export default function Home() {
   const handleContentChange = useCallback(
     (newContent: string) => {
       setContent(newContent);
-      if (selectedSlug) {
-        saveContent(selectedSlug, newContent);
-      }
+      if (selectedSlug) saveContent(selectedSlug, newContent);
     },
     [selectedSlug, saveContent]
   );
 
-  // Create new note (optionally in a folder)
-  const handleCreateNote = async (folder?: string) => {
-    const title = prompt("Note title:");
-    if (!title?.trim()) return;
+  // Open create-note modal (optionally in a folder)
+  const handleCreateNote = (folder?: string) => {
+    setCreateModal({ open: true, folder });
+  };
 
+  // Confirm note creation with title + template content
+  const handleCreateNoteConfirm = async (title: string, templateContent: string) => {
+    setCreateModal({ open: false });
     try {
       const res = await fetch("/api/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim(), folder }),
+        body: JSON.stringify({ title, folder: createModal.folder }),
       });
       const { data } = await res.json();
-      if (data?.slug) {
-        await fetchTree();
-        setSelectedSlug(data.slug);
+      if (!data?.slug) throw new Error("No slug returned");
+
+      // Write template content if non-blank
+      if (templateContent) {
+        await fetch(`/api/notes/${data.slug}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: templateContent }),
+        });
       }
+
+      await fetchTree();
+      setSelectedSlug(data.slug);
+      setShowHome(false);
     } catch {
       toast.error("Failed to create note");
     }
   };
 
+  // Daily note — create or open today's note
+  const handleDailyNote = async () => {
+    const today = new Date().toISOString().split("T")[0]; // e.g. 2026-03-15
+    const slug = `daily/${today}`;
+
+    // Try to load existing
+    const res = await fetch(`/api/notes/${slug}`);
+    if (res.ok) {
+      setSelectedSlug(slug);
+      setShowHome(false);
+      return;
+    }
+
+    // Create new
+    try {
+      const createRes = await fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: today, folder: "daily" }),
+      });
+      const { data } = await createRes.json();
+      if (data?.slug) {
+        await fetchTree();
+        setSelectedSlug(data.slug);
+        setShowHome(false);
+      }
+    } catch {
+      toast.error("Failed to create daily note");
+    }
+  };
+
+  // Export all notes as a ZIP archive
+  const handleExport = async () => {
+    try {
+      const res = await fetch("/api/export");
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `notes-${new Date().toISOString().split("T")[0]}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Export failed");
+    }
+  };
+
+  // Wiki-link click: find note by title or slug name in tree
+  const handleWikiLinkClick = useCallback(
+    (linkText: string) => {
+      const lower = linkText.toLowerCase();
+
+      function findInTree(nodes: FileTreeNode[]): string | null {
+        for (const node of nodes) {
+          if (node.type === "folder") {
+            const found = findInTree(node.children || []);
+            if (found) return found;
+          } else {
+            if (
+              node.title?.toLowerCase() === lower ||
+              node.name.toLowerCase() === lower ||
+              node.path.toLowerCase() === lower
+            ) {
+              return node.path;
+            }
+          }
+        }
+        return null;
+      }
+
+      const slug = findInTree(tree);
+      if (slug) {
+        setSelectedSlug(slug);
+        setShowHome(false);
+      } else {
+        toast.error(`Note "${linkText}" not found`);
+      }
+    },
+    [tree]
+  );
+
   // Create folder
   const handleCreateFolder = async (parentFolder?: string) => {
     const name = prompt("Folder name:");
     if (!name?.trim()) return;
-
     const folderPath = parentFolder ? `${parentFolder}/${name.trim()}` : name.trim();
-
     try {
       const res = await fetch("/api/folders", {
         method: "POST",
@@ -191,7 +332,6 @@ export default function Home() {
   // Delete folder
   const handleDeleteFolder = async (folderPath: string) => {
     if (!confirm(`Delete folder "${folderPath}" and all its contents?`)) return;
-
     try {
       const res = await fetch(
         `/api/folders?path=${encodeURIComponent(folderPath)}&force=true`,
@@ -202,7 +342,6 @@ export default function Home() {
         toast.error(error || "Failed to delete folder");
         return;
       }
-      // If the selected note was inside the deleted folder, clear it
       if (selectedSlug?.startsWith(folderPath + "/")) {
         setSelectedSlug(null);
         setContent("");
@@ -218,18 +357,17 @@ export default function Home() {
   // Delete note (from header button)
   const handleDelete = async () => {
     if (!selectedSlug) return;
-    if (!confirm("Are you sure you want to delete this note?")) return;
+    if (!confirm("Move this note to trash?")) return;
     await doDeleteFile(selectedSlug, true);
   };
 
-  // Delete a file or note (from sidebar — shows its own confirm)
+  // Delete a file or note (from sidebar)
   const deleteFileOrNote = async (filePath: string, isNote: boolean) => {
     if (!confirm(`Delete "${filePath}"?`)) return;
     await doDeleteFile(filePath, isNote);
   };
 
   const doDeleteFile = async (filePath: string, isNote: boolean) => {
-
     try {
       if (isNote) {
         await fetch(`/api/notes/${filePath}`, { method: "DELETE" });
@@ -245,7 +383,7 @@ export default function Home() {
         setNoteTitle("");
       }
       await fetchTree();
-      toast.success("Deleted");
+      toast.success(isNote ? "Moved to trash" : "Deleted");
     } catch {
       toast.error("Failed to delete");
     }
@@ -265,10 +403,8 @@ export default function Home() {
         return;
       }
       const { data } = await res.json();
-      // If the renamed item was the selected note, update selection
       if (selectedSlug === oldPath && data.newPath) {
         setSelectedSlug(data.newPath);
-        // Reload note to get updated title
         const noteRes = await fetch(`/api/notes/${data.newPath}`);
         const noteJson = await noteRes.json();
         if (noteJson.data) {
@@ -284,11 +420,59 @@ export default function Home() {
 
   if (!mounted) return null;
 
+  const previewPane = (className?: string) => (
+    <div className={`flex flex-col overflow-hidden ${className ?? "h-full"}`}>
+      <TableOfContents content={content} />
+      <MarkdownPreview
+        content={content}
+        slug={selectedSlug ?? undefined}
+        className="flex-1"
+        onWikiLinkClick={handleWikiLinkClick}
+      />
+      {selectedSlug && (
+        <BacklinksPanel slug={selectedSlug} onSelectNote={setSelectedSlug} />
+      )}
+    </div>
+  );
+
   return (
     <div className="h-screen flex flex-col">
+      {/* Modals */}
+      <SearchModal
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onSelectNote={(slug) => { setSelectedSlug(slug); setShowHome(false); setSearchOpen(false); }}
+      />
+      <TrashPanel
+        open={trashOpen}
+        onClose={() => setTrashOpen(false)}
+        onRestored={(slug) => { fetchTree(); setSelectedSlug(slug); setShowHome(false); }}
+      />
+      <CreateNoteModal
+        open={createModal.open}
+        folder={createModal.folder}
+        onClose={() => setCreateModal({ open: false })}
+        onConfirm={handleCreateNoteConfirm}
+      />
+      <KeyboardShortcutsModal
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+      />
+      <ImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={() => fetchTree()}
+      />
+
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-2 border-b shrink-0">
-        <h1 className="text-sm font-semibold">Research Notes Lite</h1>
+        <button
+          className="text-sm font-semibold hover:opacity-70 transition-opacity"
+          onClick={() => { setShowHome(true); setSelectedSlug(null); }}
+          title="Go to Home"
+        >
+          ⌂ Notes
+        </button>
 
         <div className="flex items-center gap-2">
           {/* Save status */}
@@ -336,14 +520,36 @@ export default function Home() {
             </Button>
           </div>
 
-          {/* Delete */}
+          {/* Search */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setSearchOpen(true)}
+            title="Search (Cmd+K)"
+          >
+            <Search className="h-3.5 w-3.5" />
+          </Button>
+
+          {/* Keyboard shortcuts */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setShortcutsOpen(true)}
+            title="Keyboard shortcuts (?)"
+          >
+            <Keyboard className="h-3.5 w-3.5" />
+          </Button>
+
+          {/* Delete selected note */}
           {selectedSlug && (
             <Button
               variant="ghost"
               size="icon"
               className="h-7 w-7 text-destructive"
               onClick={handleDelete}
-              title="Delete note"
+              title="Move to trash"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -369,7 +575,7 @@ export default function Home() {
       {/* Main content */}
       <div className="flex-1 overflow-hidden">
         <ResizablePanelGroup orientation="horizontal">
-          {/* File tree panel */}
+          {/* Sidebar */}
           <ResizablePanel defaultSize={20} minSize={10}>
             <div className="h-full flex flex-col">
               <div className="flex items-center justify-between px-3 py-2 border-b">
@@ -377,48 +583,38 @@ export default function Home() {
                 <div className="flex items-center gap-0.5">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        title="Sort"
-                      >
+                      <Button variant="ghost" size="icon" className="h-6 w-6" title="Sort">
                         <ArrowUpDown className="h-3.5 w-3.5" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
                       <DropdownMenuRadioGroup
                         value={sortBy}
-                        onValueChange={(v) =>
-                          updateSetting("sortBy", v as SortBy)
-                        }
+                        onValueChange={(v) => updateSetting("sortBy", v as SortBy)}
                       >
-                        <DropdownMenuRadioItem value="updated">
-                          Modified date
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="created">
-                          Created date
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="title">
-                          Title
-                        </DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="updated">Modified date</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="created">Created date</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="title">Title</DropdownMenuRadioItem>
                       </DropdownMenuRadioGroup>
                       <DropdownMenuSeparator />
                       <DropdownMenuRadioGroup
                         value={sortOrder}
-                        onValueChange={(v) =>
-                          updateSetting("sortOrder", v as SortOrder)
-                        }
+                        onValueChange={(v) => updateSetting("sortOrder", v as SortOrder)}
                       >
-                        <DropdownMenuRadioItem value="desc">
-                          Descending
-                        </DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="asc">
-                          Ascending
-                        </DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="desc">Descending</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="asc">Ascending</DropdownMenuRadioItem>
                       </DropdownMenuRadioGroup>
                     </DropdownMenuContent>
                   </DropdownMenu>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={handleDailyNote}
+                    title="Today's daily note"
+                  >
+                    <CalendarDays className="h-3.5 w-3.5" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -437,13 +633,48 @@ export default function Home() {
                   >
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => setTrashOpen(true)}
+                    title="Trash"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" title="Export / Import">
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuRadioGroup value="">
+                        <DropdownMenuRadioItem value="export" onSelect={handleExport}>
+                          Export ZIP
+                        </DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="import" onSelect={() => setImportOpen(true)}>
+                          Import...
+                        </DropdownMenuRadioItem>
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
+              {selectedTag && (
+                <div className="flex items-center gap-1 px-3 py-1 bg-primary/5 border-b">
+                  <Tag className="h-3 w-3 text-primary shrink-0" />
+                  <span className="text-xs text-primary flex-1 truncate">{selectedTag}</span>
+                  <button onClick={() => setSelectedTag(null)}>
+                    <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                  </button>
+                </div>
+              )}
               <div className="flex-1 overflow-y-auto">
                 <FileTree
-                  tree={sortedTree}
+                  tree={displayTree}
                   selectedSlug={selectedSlug}
-                  onSelectNote={setSelectedSlug}
+                  onSelectNote={(slug) => { setSelectedSlug(slug); setShowHome(false); }}
                   onCreateNote={handleCreateNote}
                   onCreateFolder={handleCreateFolder}
                   onDeleteFolder={handleDeleteFolder}
@@ -452,6 +683,11 @@ export default function Home() {
                   onUploadToFolder={() => fetchTree()}
                 />
               </div>
+              <TagPanel
+                tree={tree}
+                selectedTag={selectedTag}
+                onSelectTag={setSelectedTag}
+              />
             </div>
           </ResizablePanel>
 
@@ -459,11 +695,19 @@ export default function Home() {
 
           {/* Editor + Preview area */}
           <ResizablePanel defaultSize={80}>
-            {!selectedSlug ? (
+            {showHome ? (
+              <HomeView
+                tree={tree}
+                onSelectNote={(slug) => { setSelectedSlug(slug); setShowHome(false); }}
+                onNewNote={() => setCreateModal({ open: true })}
+                onDailyNote={handleDailyNote}
+              />
+            ) : !selectedSlug ? (
               <div className="h-full flex items-center justify-center text-muted-foreground">
                 <div className="text-center">
                   <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
                   <p className="text-sm">Select a note or create a new one</p>
+                  <p className="text-xs mt-1 opacity-60">Press ? for keyboard shortcuts</p>
                 </div>
               </div>
             ) : (
@@ -482,10 +726,7 @@ export default function Home() {
                       slug={selectedSlug ?? undefined}
                     />
                   ) : editorViewMode === "preview" ? (
-                    <div className="h-full flex flex-col overflow-hidden">
-                      <TableOfContents content={content} />
-                      <MarkdownPreview content={content} slug={selectedSlug ?? undefined} className="flex-1" />
-                    </div>
+                    previewPane()
                   ) : (
                     <ResizablePanelGroup orientation="horizontal">
                       <ResizablePanel defaultSize={50} minSize={30}>
@@ -495,18 +736,9 @@ export default function Home() {
                           slug={selectedSlug ?? undefined}
                         />
                       </ResizablePanel>
-
                       <ResizableHandle withHandle />
-
                       <ResizablePanel defaultSize={50} minSize={20}>
-                        <div className="h-full flex flex-col overflow-hidden">
-                          <TableOfContents content={content} />
-                          <MarkdownPreview
-                            content={content}
-                            slug={selectedSlug ?? undefined}
-                            className="flex-1"
-                          />
-                        </div>
+                        {previewPane()}
                       </ResizablePanel>
                     </ResizablePanelGroup>
                   )}

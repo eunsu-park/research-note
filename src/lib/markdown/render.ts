@@ -36,6 +36,15 @@ function createRehypeRewriteLocalPaths(noteFolder: string) {
   };
 }
 
+/** Replace [[wiki links]] with HTML anchors before parsing */
+function preprocessWikiLinks(content: string): string {
+  return content.replace(
+    /\[\[([^\]]+)\]\]/g,
+    (_, text: string) =>
+      `<a href="#" data-wiki-link="${encodeURIComponent(text.trim())}" class="wiki-link">${text.trim()}</a>`
+  );
+}
+
 /** Render markdown content to HTML string */
 export async function renderMarkdown(
   content: string,
@@ -56,7 +65,7 @@ export async function renderMarkdown(
     .use(rehypeKatex)
     .use(createRehypeRewriteLocalPaths(noteFolder))
     .use(rehypeStringify)
-    .process(content);
+    .process(preprocessWikiLinks(content));
 
   return String(result);
 }

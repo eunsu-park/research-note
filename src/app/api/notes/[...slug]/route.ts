@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readNote, writeNote, deleteNote } from "@/lib/filesystem/notes";
+import { readNote, writeNote, moveToTrash } from "@/lib/filesystem/notes";
 
 type Params = { params: Promise<{ slug: string[] }> };
 
@@ -53,13 +53,13 @@ export async function PUT(request: Request, { params }: Params) {
   }
 }
 
-/** DELETE /api/notes/[...slug] - Delete a note */
+/** DELETE /api/notes/[...slug] - Move note to trash */
 export async function DELETE(_request: Request, { params }: Params) {
   const { slug } = await params;
   const noteSlug = slug.join("/");
   try {
-    const deleted = deleteNote(noteSlug);
-    if (!deleted) {
+    const moved = moveToTrash(noteSlug);
+    if (!moved) {
       return NextResponse.json(
         { error: "Note not found" },
         { status: 404 }
@@ -67,9 +67,9 @@ export async function DELETE(_request: Request, { params }: Params) {
     }
     return NextResponse.json({ data: { slug: noteSlug } });
   } catch (error) {
-    console.error("Failed to delete note:", error);
+    console.error("Failed to move note to trash:", error);
     return NextResponse.json(
-      { error: "Failed to delete note" },
+      { error: "Failed to move note to trash" },
       { status: 500 }
     );
   }
